@@ -143,7 +143,7 @@ module.exports = function(passport) {
 
         clientID        : configAuth.facebookAuth.clientID,
         clientSecret    : configAuth.facebookAuth.clientSecret,
-        callbackURL     : configAuth.facebookAuth.callbackURL,
+        enableProof: true,
         passReqToCallback : true, // allows us to pass in the req from our route (lets us check if a user is logged in or not)
         profileFields: ['id', 'name', 'photos', 'email']
     },
@@ -152,9 +152,10 @@ module.exports = function(passport) {
         // asynchronous
         process.nextTick(function() {
             
-            console.log(profile);
+            console.log('fb start');
 
             FBSave = function (user) {
+                console.log('fbsave');
                 user.facebook.token = token;
                 user.facebook.name  = profile.name.givenName + ' ' + profile.name.familyName;
                 user.facebook.email = (profile.emails[0].value || '').toLowerCase(); // pull the first email
@@ -167,116 +168,51 @@ module.exports = function(passport) {
                 });
             };
 
-            // check if the user is already logged in
-            if (!req.user) {
+            // see if the fb id already exists in db
+            User.findOne({ 'facebook.id' : profile.id }, function(err, user) {
+                if (err)
+                    return done(err);
 
-                User.findOne({ 'facebook.id' : profile.id }, function(err, user) {
-                    if (err)
-                        return done(err);
-
-                    if (user) {
-
+                // if the fb account exists in db
+                if (user) {
+                    // if user is logged in
+                    if (req.user) {
+                        // if logged in user matches the fb user
+                        if (req.user.id == user.id) {
+                            return done(null, user); // return that user;
+                        }
+                        else {
+                            return done(null, false, req.flash('connectMessage', 'The facebook account is already associated with another user'));
+                        }
+                    // if the user is not logged in
+                    } else {
                         // if there is a user id already but no token (user was linked at one point and then removed)
                         if (!user.facebook.token) {
                             return FBSave(user);
                         }
-
-                        return done(null, user); // user found, return that user
+                        // we have token, just return the fb user
+                        return done(null, user);
+                    }
+                // if the fb account doesn't exists in db
+                } else {
+                    // if user is logged in
+                    if (req.user) {
+                        // user already exists and is logged in, we have to link accounts
+                        var user            = req.user; // pull the user out of the session
+                        user.facebook.id    = profile.id;
+                        return FBSave(user);
                     } else {
                         // if there is no user, create them
                         var newUser            = new User();
                         newUser.facebook.id    = profile.id;
                         return FBSave(user);
                     }
-                });
-
-            } else {
-                // user already exists and is logged in, we have to link accounts
-                var user            = req.user; // pull the user out of the session
-                user.facebook.id    = profile.id;
-                return FBSave(user);
-            }
+                }
+            });
         });
 
     }));
 
-    // =========================================================================
-    // TWITTER =================================================================
-    // =========================================================================
-    passport.use(new TwitterStrategy({
-
-        consumerKey     : configAuth.twitterAuth.consumerKey,
-        consumerSecret  : configAuth.twitterAuth.consumerSecret,
-        callbackURL     : configAuth.twitterAuth.callbackURL,
-        passReqToCallback : true // allows us to pass in the req from our route (lets us check if a user is logged in or not)
-
-    },
-    function(req, token, tokenSecret, profile, done) {
-
-        // asynchronous
-        process.nextTick(function() {
-
-            // check if the user is already logged in
-            if (!req.user) {
-
-                User.findOne({ 'twitter.id' : profile.id }, function(err, user) {
-                    if (err)
-                        return done(err);
-
-                    if (user) {
-                        // if there is a user id already but no token (user was linked at one point and then removed)
-                        if (!user.twitter.token) {
-                            user.twitter.token       = token;
-                            user.twitter.username    = profile.username;
-                            user.twitter.displayName = profile.displayName;
-
-                            user.save(function(err) {
-                                if (err)
-                                    return done(err);
-                                    
-                                return done(null, user);
-                            });
-                        }
-
-                        return done(null, user); // user found, return that user
-                    } else {
-                        // if there is no user, create them
-                        var newUser                 = new User();
-
-                        newUser.twitter.id          = profile.id;
-                        newUser.twitter.token       = token;
-                        newUser.twitter.username    = profile.username;
-                        newUser.twitter.displayName = profile.displayName;
-
-                        newUser.save(function(err) {
-                            if (err)
-                                return done(err);
-                                
-                            return done(null, newUser);
-                        });
-                    }
-                });
-
-            } else {
-                // user already exists and is logged in, we have to link accounts
-                var user                 = req.user; // pull the user out of the session
-
-                user.twitter.id          = profile.id;
-                user.twitter.token       = token;
-                user.twitter.username    = profile.username;
-                user.twitter.displayName = profile.displayName;
-
-                user.save(function(err) {
-                    if (err)
-                        return done(err);
-                        
-                    return done(null, user);
-                });
-            }
-
-        });
-
-    }));
 
     // =========================================================================
     // GOOGLE ==================================================================

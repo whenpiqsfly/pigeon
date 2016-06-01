@@ -1,16 +1,24 @@
+var configAuth = require('../config/auth'); // use this one for testing
+
 module.exports = function(app, passport) {
 
 // normal routes ===============================================================
 
     // show the home page (will also have our login links)
     app.get('/', function(req, res) {
-        res.render('index.ejs');
+        if (req.isAuthenticated())
+            res.render('index.ejs', {
+                user:req.user
+            });
+        else
+            res.render('index.ejs');
     });
 
     // PROFILE SECTION =========================
     app.get('/profile', isLoggedIn, function(req, res) {
         res.render('profile.ejs', {
-            user : req.user
+            user : req.user,
+            message: req.flash('connectMessage')
         });
     });
 
@@ -54,27 +62,18 @@ module.exports = function(app, passport) {
     // facebook -------------------------------
 
         // send to facebook to do the authentication
-        app.get('/auth/facebook', passport.authenticate('facebook', { scope : 'email' }));
+        app.get('/auth/facebook', passport.authenticate('facebook', {
+            scope : 'email',
+            callbackURL: '/auth/facebook/callback'
+        }));
 
         // handle the callback after facebook has authenticated the user
         app.get('/auth/facebook/callback',
             passport.authenticate('facebook', {
                 successRedirect : '/profile',
-                failureRedirect : '/'
+                failureRedirect : '/',
+                callbackURL: '/connect/facebook/callback'
             }));
-
-    // twitter --------------------------------
-
-        // send to twitter to do the authentication
-        app.get('/auth/twitter', passport.authenticate('twitter', { scope : 'email' }));
-
-        // handle the callback after twitter has authenticated the user
-        app.get('/auth/twitter/callback',
-            passport.authenticate('twitter', {
-                successRedirect : '/profile',
-                failureRedirect : '/'
-            }));
-
 
     // google ---------------------------------
 
@@ -105,27 +104,19 @@ module.exports = function(app, passport) {
     // facebook -------------------------------
 
         // send to facebook to do the authentication
-        app.get('/connect/facebook', passport.authorize('facebook', { scope : 'email' }));
+        app.get('/connect/facebook', passport.authorize('facebook', {
+            scope : 'email',
+            callbackURL: '/connect/facebook/callback'
+        }));
 
         // handle the callback after facebook has authorized the user
         app.get('/connect/facebook/callback',
             passport.authorize('facebook', {
                 successRedirect : '/profile',
-                failureRedirect : '/'
+                failureRedirect : '/profile',
+                failureFlash : true, // allow flash messages
+                callbackURL: '/connect/facebook/callback'
             }));
-
-    // twitter --------------------------------
-
-        // send to twitter to do the authentication
-        app.get('/connect/twitter', passport.authorize('twitter', { scope : 'email' }));
-
-        // handle the callback after twitter has authorized the user
-        app.get('/connect/twitter/callback',
-            passport.authorize('twitter', {
-                successRedirect : '/profile',
-                failureRedirect : '/'
-            }));
-
 
     // google ---------------------------------
 
@@ -136,7 +127,8 @@ module.exports = function(app, passport) {
         app.get('/connect/google/callback',
             passport.authorize('google', {
                 successRedirect : '/profile',
-                failureRedirect : '/'
+                failureRedirect : '/login',
+                failureFlash : true // allow flash messages
             }));
 
 // =============================================================================
@@ -147,28 +139,19 @@ module.exports = function(app, passport) {
 // user account will stay active in case they want to reconnect in the future
 
     // local -----------------------------------
-    app.get('/unlink/local', isLoggedIn, function(req, res) {
+    /*app.get('/unlink/local', isLoggedIn, function(req, res) {
         var user            = req.user;
         user.local.email    = undefined;
         user.local.password = undefined;
         user.save(function(err) {
             res.redirect('/profile');
         });
-    });
+    });*/
 
     // facebook -------------------------------
     app.get('/unlink/facebook', isLoggedIn, function(req, res) {
         var user            = req.user;
         user.facebook.token = undefined;
-        user.save(function(err) {
-            res.redirect('/profile');
-        });
-    });
-
-    // twitter --------------------------------
-    app.get('/unlink/twitter', isLoggedIn, function(req, res) {
-        var user           = req.user;
-        user.twitter.token = undefined;
         user.save(function(err) {
             res.redirect('/profile');
         });

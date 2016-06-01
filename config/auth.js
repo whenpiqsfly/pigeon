@@ -2,17 +2,12 @@
 
 // expose our config directly to our application using module.exports
 module.exports = {
+    
+    'hostname' : 'http://localhost:8080',
 
     'facebookAuth' : {
         'clientID'        : process.env.FACEBOOK_CLIENT_ID, // your App ID
         'clientSecret'    : process.env.FACEBOOK_CLIENT_SECRET, // your App Secret
-        'callbackURL'     : 'http://localhost:8080/auth/facebook/callback'
-    },
-
-    'twitterAuth' : {
-        'consumerKey'        : 'your-consumer-key-here',
-        'consumerSecret'     : 'your-client-secret-here',
-        'callbackURL'        : 'http://localhost:8080/auth/twitter/callback'
     },
 
     'googleAuth' : {

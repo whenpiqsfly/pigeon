@@ -72,7 +72,7 @@ module.exports = function(app, passport) {
             passport.authenticate('facebook', {
                 successRedirect : '/profile',
                 failureRedirect : '/',
-                callbackURL: '/connect/facebook/callback'
+                callbackURL: '/auth/facebook/callback'
             }));
 
     // google ---------------------------------
@@ -152,6 +152,8 @@ module.exports = function(app, passport) {
     app.get('/unlink/facebook', isLoggedIn, function(req, res) {
         var user            = req.user;
         user.facebook.token = undefined;
+        user.facebook.name  = undefined;
+        user.facebook.email = undefined;
         user.save(function(err) {
             res.redirect('/profile');
         });

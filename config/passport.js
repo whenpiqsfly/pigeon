@@ -93,7 +93,7 @@ module.exports = function(passport) {
                         var newUser            = new User();
 
                         newUser.local.email    = email;
-                        newUser.local.password = newUser.generateHash(password);
+                        newUser.local.password = User.generateHash(password);
 
                         newUser.save(function(err) {
                             if (err)
@@ -118,7 +118,7 @@ module.exports = function(passport) {
                     } else {
                         var user = req.user;
                         user.local.email = email;
-                        user.local.password = user.generateHash(password);
+                        user.local.password = User.generateHash(password);
                         user.save(function (err) {
                             if (err)
                                 return done(err);
@@ -143,7 +143,6 @@ module.exports = function(passport) {
 
         clientID        : configAuth.facebookAuth.clientID,
         clientSecret    : configAuth.facebookAuth.clientSecret,
-        enableProof: true,
         passReqToCallback : true, // allows us to pass in the req from our route (lets us check if a user is logged in or not)
         profileFields: ['id', 'name', 'photos', 'email']
     },
@@ -151,8 +150,6 @@ module.exports = function(passport) {
 
         // asynchronous
         process.nextTick(function() {
-            
-            console.log('fb start');
 
             FBSave = function (user) {
                 console.log('fbsave');

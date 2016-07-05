@@ -6,6 +6,7 @@ var express  = require('express');
 var app      = express();
 var port     = process.env.PORT || 8080;
 var mongoose = require('mongoose');
+var mongooseAutoIncrement = require('mongoose-auto-increment');
 var passport = require('passport');
 var flash    = require('connect-flash');
 
@@ -14,8 +15,11 @@ var cookieParser = require('cookie-parser');
 var bodyParser   = require('body-parser');
 var session      = require('express-session');
 
-// configuration ===============================================================
-mongoose.connect(process.env.MONGOLAB_URI); // connect to our database
+// DB initializations ===============================================================
+var options = { promiseLibrary: require('bluebird') };
+var connection = mongoose.connect(process.env.MONGOLAB_URI, options); // connect to our database
+mongooseAutoIncrement.initialize(connection);
+mongoose.Promise = require('bluebird');
 
 require('./config/passport')(passport); // pass passport for configuration
 
@@ -28,7 +32,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set('view engine', 'ejs'); // set up ejs for templating
 
 // required for passport
-app.use(session({ secret: 'ilovescotchscotchyscotchscotch' })); // session secret
+app.use(session({ secret: process.env.PASSPORTJS_SESSION_SECRET })); // session secret
 app.use(passport.initialize());
 app.use(passport.session()); // persistent login sessions
 app.use(flash()); // use connect-flash for flash messages stored in session
